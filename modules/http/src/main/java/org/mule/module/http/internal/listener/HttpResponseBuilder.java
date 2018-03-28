@@ -6,6 +6,7 @@
  */
 package org.mule.module.http.internal.listener;
 
+import static org.apache.commons.io.IOUtils.closeQuietly;
 import static org.mule.module.http.api.HttpConstants.HttpStatus.NO_CONTENT;
 import static org.mule.module.http.api.HttpConstants.HttpStatus.getReasonPhraseForStatusCode;
 import static org.mule.module.http.api.HttpConstants.RequestProperties.HTTP_PREFIX;
@@ -188,17 +189,20 @@ public class HttpResponseBuilder extends HttpMessageBuilder implements Initialis
             }
             else if (payload instanceof InputStream)
             {
+                InputStream stream = (InputStream) payload;
+
                 if (responseStreaming == ALWAYS || (responseStreaming == AUTO && existingContentLength == null))
                 {
                     if (supportsTransferEncoding(event))
                     {
                         setupChunkedEncoding(httpResponseHeaderBuilder);
                     }
-                    httpEntity = new InputStreamHttpEntity((InputStream) payload);
+                    httpEntity = new InputStreamHttpEntity(stream);
                 }
                 else
                 {
-                    ByteArrayHttpEntity byteArrayHttpEntity = new ByteArrayHttpEntity(IOUtils.toByteArray(((InputStream) payload)));
+                    ByteArrayHttpEntity byteArrayHttpEntity = new ByteArrayHttpEntity(IOUtils.toByteArray(stream));
+                    closeQuietly(stream);
                     setupContentLengthEncoding(httpResponseHeaderBuilder, byteArrayHttpEntity.getContent().length);
                     httpEntity = byteArrayHttpEntity;
                 }
